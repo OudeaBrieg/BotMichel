@@ -1,5 +1,7 @@
 import sys
 import numpy as np
+from torch.nn import Tanh
+
 from rlgym.envs import Match
 from rlgym.utils.action_parsers import DiscreteAction
 from stable_baselines3 import PPO
@@ -14,7 +16,7 @@ from rlgym_tools.sb3_utils import SB3MultipleInstanceEnv
 from rlgym.utils.reward_functions.common_rewards.misc_rewards import EventReward
 from rlgym.utils.reward_functions.common_rewards.player_ball_rewards import VelocityPlayerToBallReward
 from rlgym.utils.reward_functions.common_rewards.ball_goal_rewards import VelocityBallToGoalReward
-from rlgym_tools.extra_rewards.jump_touch_reward import JumpTouchReward
+#from rlgym_tools.extra_rewards.jump_touch_reward import JumpTouchReward
 from rlgym.utils.reward_functions import CombinedReward
 
 # Checking for RLBot only-compatible Python 3.7.9
@@ -46,7 +48,7 @@ if __name__ == '__main__':  # Required for multiprocessing
             reward_function=CombinedReward(
             (
                 VelocityPlayerToBallReward(),
-                JumpTouchReward(),
+                #JumpTouchReward(),
                 VelocityBallToGoalReward(),
                 EventReward(
                     team_goal=100.0,
@@ -56,8 +58,9 @@ if __name__ == '__main__':  # Required for multiprocessing
                     demo=10.0,
                 ),
             ),
-            (0.1, 0.5, 1.0, 1.0, 1.0)),
-            self_play=True, # in rlgym 1.2 'self_play' is depreciated. Uncomment line if using an earlier version
+            (0.1, 1.0, 1.0)),
+            #(0.1, 0.5, 1.0, 1.0)),
+            #self_play=True, # in rlgym 1.2 'self_play' is depreciated. Uncomment line if using an earlier version
             terminal_conditions=[TimeoutCondition(fps * 300), NoTouchTimeoutCondition(fps * 45), GoalScoredCondition()],
             obs_builder=AdvancedObs(),  # Not that advanced, good default
             state_setter=DefaultState(),  # Resets to kickoff position
@@ -81,7 +84,6 @@ if __name__ == '__main__':  # Required for multiprocessing
         print("Loaded previous exit save.")
     except:
         print("No saved model found, creating new model.")
-        from torch.nn import Tanh
         policy_kwargs = dict(
             activation_fn=Tanh,
             net_arch=[512, 512, dict(pi=[256, 256, 256], vf=[256, 256, 256])],
