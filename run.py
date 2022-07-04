@@ -2,6 +2,8 @@ import sys
 import numpy as np
 from torch.nn import Tanh
 
+from src.utils.misc import count_parameters
+
 from rlgym.envs import Match
 from rlgym.utils.action_parsers import DiscreteAction
 from stable_baselines3 import PPO
@@ -85,6 +87,7 @@ if __name__ == '__main__':  # Required for multiprocessing
             #custom_objects={"n_envs": env.num_envs, "n_steps": steps, "batch_size": batch_size, "n_epochs": 10, "learning_rate": 5e-5}
         )
         print("Loaded previous exit save.")
+        total_params = count_parameters(model)
     except:
         print("No saved model found, creating new model.")
         policy_kwargs = dict(
@@ -107,6 +110,8 @@ if __name__ == '__main__':  # Required for multiprocessing
             tensorboard_log="logs",  # `python -m tensorboard.main --logdir=logs` in terminal to see graphs
             device="auto"                # Uses GPU if available
         )
+        total_params = count_parameters(model)
+        
 
     # Save model every so often
     # Divide by num_envs (number of agents) because callback only increments every time all agents have taken a step
