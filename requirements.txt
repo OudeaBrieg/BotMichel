@@ -1,6 +1,13 @@
-# This will cause pip to auto-upgrade and stop scaring people with warning messages
 pip
+numpy
+pickle5
+
+rlbot==1.*
+
+--find-links https://download.pytorch.org/whl/torch_stable.html
+torch>=1.5.1+cpu
 
 stable-baselines3
 rlgym
-rlgym-tools
+rlgym-compat>=1.0.2
+rlgym-tools>=1.6.1
