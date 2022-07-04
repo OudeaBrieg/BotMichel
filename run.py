@@ -33,7 +33,7 @@ if __name__ == '__main__':  # Required for multiprocessing
     fps = 120 / frame_skip
     gamma = np.exp(np.log(0.5) / (fps * half_life_seconds))  # Quick mafs
     agents_per_match = 6        # 2 if 1v1, 4 if 2v2, 6 if 3v3
-    num_instances = 1           # As many as you can handle
+    num_instances = 4           # As many as you can handle
     target_steps = 1_000_000    # How many steps we want to train for each training session
     steps = target_steps // (num_instances * agents_per_match) # Making sure the experience counts line up properly
     batch_size = target_steps//10 # getting the batch size down to something more manageable - 100k in this case
@@ -87,7 +87,7 @@ if __name__ == '__main__':  # Required for multiprocessing
             #custom_objects={"n_envs": env.num_envs, "n_steps": steps, "batch_size": batch_size, "n_epochs": 10, "learning_rate": 5e-5}
         )
         print("Loaded previous exit save.")
-        total_params = count_parameters(model)
+        #total_params = count_parameters(model)
     except:
         print("No saved model found, creating new model.")
         policy_kwargs = dict(
@@ -110,7 +110,7 @@ if __name__ == '__main__':  # Required for multiprocessing
             tensorboard_log="logs",  # `python -m tensorboard.main --logdir=logs` in terminal to see graphs
             device="auto"                # Uses GPU if available
         )
-        total_params = count_parameters(model)
+        #total_params = count_parameters(model)
         
 
     # Save model every so often
