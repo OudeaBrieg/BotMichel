@@ -60,7 +60,6 @@ if __name__ == '__main__':  # Required for multiprocessing
                     boost_pickup=5.0
                 ),
             ),
-            #(0.1, 1.0, 1.0, 1.0, 1.0)),
             (0.1, 1.0, 1.0, 1.0)),
             # if rlgym < 1.2, 'self_play'=True instead of spawn_opponents=True
             spawn_opponents=True,
@@ -119,9 +118,9 @@ if __name__ == '__main__':  # Required for multiprocessing
         while True:
             #may need to reset timesteps when you're running a different number of instances than when you saved the model
             model.learn(training_interval, callback=callback, reset_num_timesteps=False) #can ignore callback if training_interval < callback target
-            model.save("models/botmichel")
+            model.save("models/bot_michel")
             if model.num_timesteps >= mmr_model_target_count:
-                model.save(f"mmr_models/botmichel_{model.num_timesteps}")
+                model.save(f"mmr_models/bot_michel_{model.num_timesteps}")
                 mmr_model_target_count += mmr_save_frequency
 
     except KeyboardInterrupt:
