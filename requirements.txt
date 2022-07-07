@@ -4,7 +4,7 @@ pickle5
 
 prettytable
 
-rlbot==1.*-
+rlbot==1.*
 
 stable-baselines3
 rlgym
