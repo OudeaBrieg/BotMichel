@@ -2,29 +2,28 @@ import sys, os
 import shutil
 import argparse
 from argparse import RawTextHelpFormatter
-
 import numpy as np
-from torch.nn import Tanh
 
 from src.utils.misc import count_parameters
 from src.environment.terminal_conditions import BallTouchedCondition
+from src.state_staters.state import DistanceState
+from src.rewards.botmichel_rewards import TouchBallReward
 
-from rlgym.envs import Match
-from rlgym.utils.action_parsers import DiscreteAction
+from torch.nn import Tanh
 from stable_baselines3 import PPO
 from stable_baselines3.common.callbacks import CheckpointCallback
 from stable_baselines3.common.vec_env import VecMonitor, VecNormalize, VecCheckNan
 from stable_baselines3.ppo import MlpPolicy
 
+from rlgym.envs import Match
+from rlgym.utils.action_parsers import DiscreteAction
 from rlgym.utils.obs_builders import AdvancedObs
-from src.state_staters.state import DistanceState
-from rlgym.utils.terminal_conditions.common_conditions import TimeoutCondition, NoTouchTimeoutCondition, GoalScoredCondition
-from rlgym_tools.sb3_utils import SB3MultipleInstanceEnv
+from rlgym.utils.terminal_conditions.common_conditions import TimeoutCondition
 from rlgym.utils.reward_functions.common_rewards.player_ball_rewards import VelocityPlayerToBallReward
 from rlgym.utils.terminal_conditions.common_conditions import TimeoutCondition
-from src.rewards.botmichel_rewards import JumpTouchReward, SaveBoostReward,TouchBallReward
-from rlgym.utils.reward_functions.common_rewards.misc_rewards import EventReward
 from rlgym.utils.reward_functions import CombinedReward
+
+from rlgym_tools.sb3_utils import SB3MultipleInstanceEnv
 
 # Checking for RLBot only-compatible Python 3.7.9
 if sys.version_info[0] != 3 or sys.version_info[1] != 7 or sys.version_info[2] != 9:
