@@ -1,6 +1,7 @@
 import numpy as np
 from rlgym.utils import RewardFunction
 from rlgym.utils.gamestates import PlayerData, GameState
+from rlgym.utils.common_values import BALL_RADIUS, CAR_MAX_SPEED
 
 class JumpTouchReward(RewardFunction):
     """
@@ -27,3 +28,16 @@ class SaveBoostReward(RewardFunction):
     def get_reward(self, player: PlayerData, state: GameState, previous_action: np.ndarray) -> float:
         # 1 reward for each frame with 100 boost, sqrt because 0->20 makes bigger difference than 80->100
         return np.sqrt(player.boost_amount)
+
+class TouchBallReward(RewardFunction):
+    def __init__(self, aerial_weight=0.):
+        self.aerial_weight = aerial_weight
+
+    def reset(self, initial_state: GameState):
+        pass
+
+    def get_reward(self, player: PlayerData, state: GameState, previous_action: np.ndarray) -> float:
+        if player.ball_touched:
+            # Default just rewards 1, set aerial weight to reward more depending on ball height
+            return ((state.ball.position[2] + BALL_RADIUS) / (2 * BALL_RADIUS)) ** self.aerial_weight
+        return 0

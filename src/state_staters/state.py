@@ -1,4 +1,6 @@
+from shutil import register_unpack_format
 import numpy as np
+import random
 from rlgym.utils import StateSetter
 from rlgym.utils.state_setters import StateWrapper
 from rlgym.utils.math import rand_vec3
@@ -25,50 +27,68 @@ GOAL_LINE = 5100
 
 YAW_MAX = np.pi
 
-class BetterRandom(StateSetter):  # Random state with some triangular distributions
-    def __init__(self):
+class DistanceState(StateSetter):  # Random state with some triangular distributions
+    def __init__(self,
+                 env_type: str = "distance",
+                 difficulty: int = 0,
+                 cars_on_ground: bool = True, 
+                 ball_on_ground: bool = True,
+                 give_boost: bool = False):
         super().__init__()
+        self.env_type = env_type
+        self.difficulty = difficulty
+        self.cars_on_ground = cars_on_ground
+        self.ball_on_ground = ball_on_ground
+        self.give_boost = give_boost
 
     def reset(self, state_wrapper: StateWrapper):
-        state_wrapper.ball.set_pos(
-            x=np.random.uniform(-LIM_X, LIM_X),
-            y=np.random.uniform(-LIM_Y, LIM_Y),
-            z=np.random.triangular(BALL_RADIUS, BALL_RADIUS, LIM_Z),
-        )
+        # Ball Initialization
+        if self.ball_on_ground:
+            state_wrapper.ball.set_pos(0, 0, 0)     # Set Ball Position
+        else:
+            state_wrapper.ball.set_pos(0, 0, np.random.uniform(90, 642)) # Set Ball Position
+        state_wrapper.ball.set_lin_vel(0, 0, 0)     # Set Ball Linear Velocity
+        state_wrapper.ball.set_ang_vel(0, 0, 0)     # Set Ball Angular Velocity
 
-        # 99.9% chance of below ball max speed
-        ball_speed = np.random.exponential(-BALL_MAX_SPEED / np.log(1 - 0.999))
-        vel = rand_vec3(min(ball_speed, BALL_MAX_SPEED))
-        state_wrapper.ball.set_lin_vel(*vel)
-
-        ang_vel = rand_vec3(np.random.triangular(0, 0, CAR_MAX_ANG_VEL + 0.5))
-        state_wrapper.ball.set_ang_vel(*ang_vel)
-
+        def difficulty_distance(difficulty):
+            def distance_easy():
+                return np.random.uniform(-128, -1024)
+            def distance_medium():
+                return np.random.uniform(-1024, -1984)
+            def distance_hard():
+                return np.random.uniform(-1984, -2944)
+            def distance_default():
+                return np.random.uniform(-128, -2944)
+            distance_switch = {
+                0: distance_easy,
+                1: distance_medium,
+                2: distance_hard
+            }
+            return distance_switch.get(difficulty, distance_default)()
+        
+        # Cars Initialization
         for car in state_wrapper.cars:
-            # On average 1 second at max speed away from ball
-            ball_dist = np.random.exponential(BALL_MAX_SPEED)
-            ball_car = rand_vec3(ball_dist)
-            car_pos = state_wrapper.ball.position + ball_car
-            if abs(car_pos[0]) < LIM_X \
-                    and abs(car_pos[1]) < LIM_Y \
-                    and 0 < car_pos[2] < LIM_Z:
-                car.set_pos(*car_pos)
-            else:  # Fallback on fully random
-                car.set_pos(
-                    x=np.random.uniform(-LIM_X, LIM_X),
-                    y=np.random.uniform(-LIM_Y, LIM_Y),
-                    z=np.random.triangular(BALL_RADIUS, BALL_RADIUS, LIM_Z),
-                )
+            distance = difficulty_distance(self.difficulty)   # Computing Distance from Car to Ball
+            if self.cars_on_ground:
+                car_height = 0 
+            else:
+                car_height = np.random.uniform(90, 642)
+            car.set_pos(0, distance, car_height)
+                
 
-            vel = rand_vec3(np.random.triangular(0, 0, CAR_MAX_SPEED))
-            car.set_lin_vel(*vel)
+            yaw_treshold = (random.random() - 0.5) * (np.pi * 0.15)
+            car.set_rot(0, (np.pi/2) + yaw_treshold, 0) # Set Car Rotation at (0, pi/2 +th, 0)
+            
+            car.set_lin_vel(0, 0, 0)                    # Set Car Linear Velocity to (0, 0, 0)
+            car.set_ang_vel(0, 0, 0)                    # Set Car Angular Velocity to (0, 0, 0)
+            
+            if self.give_boost:
+                car.boost = np.random.uniform(0.12, 1.00)
+            else:
+                car.boost = 0
 
-            car.set_rot(
-                pitch=np.random.triangular(-PITCH_LIM, 0, PITCH_LIM),
-                yaw=np.random.uniform(-YAW_LIM, YAW_LIM),
-                roll=np.random.triangular(-ROLL_LIM, 0, ROLL_LIM),
-            )
+    
 
-            ang_vel = rand_vec3(np.random.triangular(0, 0, CAR_MAX_ANG_VEL))
-            car.set_ang_vel(*ang_vel)
-            car.boost = np.random.uniform(0, 1)
+    
+
+    

@@ -1,4 +1,5 @@
-import sys
+import sys, os
+import shutil
 import argparse
 from argparse import RawTextHelpFormatter
 
@@ -6,6 +7,7 @@ import numpy as np
 from torch.nn import Tanh
 
 from src.utils.misc import count_parameters
+from src.environment.terminal_conditions import BallTouchedCondition
 
 from rlgym.envs import Match
 from rlgym.utils.action_parsers import DiscreteAction
@@ -15,12 +17,12 @@ from stable_baselines3.common.vec_env import VecMonitor, VecNormalize, VecCheckN
 from stable_baselines3.ppo import MlpPolicy
 
 from rlgym.utils.obs_builders import AdvancedObs
-from src.state_staters.state import BetterRandom
+from src.state_staters.state import DistanceState
 from rlgym.utils.terminal_conditions.common_conditions import TimeoutCondition, NoTouchTimeoutCondition, GoalScoredCondition
 from rlgym_tools.sb3_utils import SB3MultipleInstanceEnv
 from rlgym.utils.reward_functions.common_rewards.player_ball_rewards import VelocityPlayerToBallReward
-from rlgym.utils.reward_functions.common_rewards.ball_goal_rewards import VelocityBallToGoalReward
-from src.rewards.botmichel_rewards import JumpTouchReward, SaveBoostReward
+from rlgym.utils.terminal_conditions.common_conditions import TimeoutCondition
+from src.rewards.botmichel_rewards import JumpTouchReward, SaveBoostReward,TouchBallReward
 from rlgym.utils.reward_functions.common_rewards.misc_rewards import EventReward
 from rlgym.utils.reward_functions import CombinedReward
 
@@ -37,12 +39,12 @@ if __name__ == '__main__':  # Required for multiprocessing
         formatter_class=RawTextHelpFormatter)
 
     # In-Game Metadata
-    parser.add_argument('-agents_per_match', type=int, default=6,
+    parser.add_argument('-agents_per_match', type=int, default=1,
                         help='Number of Agents per Instance\n' + \
                              '(1 if solo, 2 if 1v1, 4 if 2v2, 6 if 3v3)')
-    parser.add_argument('-spawn_opponents', type=bool, default=True,
+    parser.add_argument('-spawn_opponents', type=bool, default=False,
                         help='Enabling opponents to spawn')
-    parser.add_argument('-team_size', type=int, default=3,
+    parser.add_argument('-team_size', type=int, default=1,
                         help='Number of Agents per Team\n' + \
                              '(1 if solo, 2 if twos, 3 if threes)')
     
@@ -57,6 +59,8 @@ if __name__ == '__main__':  # Required for multiprocessing
     parser.add_argument('-half_life_seconds', type=int, default=5,
                         help='Number of Seconds until Half-life\n' + \
                              '(After this many seconds the reward discount is 0.5)')
+    parser.add_argument('-ep_len_seconds', type=int, default=10,
+                        help='Maximum episode length (in seconds)')
 
     # Model Hyperparameters
     parser.add_argument('-learning_rate', type=float, default=5e-5,
@@ -82,6 +86,10 @@ if __name__ == '__main__':  # Required for multiprocessing
                         help='Name of the Model')
     parser.add_argument('-logs_path', type=str, default='logs',
                         help='`python -m tensorboard.main --logdir=your-path` at the root.')
+    parser.add_argument('-clear_models', type=bool, default=False,
+                        help='Enables clearing of all models in model_path')
+    parser.add_argument('-clear_logs', type=bool, default=False,
+                        help='Enables clearing of all logs in logs_path')
     
     args = parser.parse_args()
 
@@ -98,38 +106,56 @@ if __name__ == '__main__':  # Required for multiprocessing
     training_interval = 25_000_000
     mmr_save_frequency = 50_000_000
     model_save_path = f"{args.model_path}/{args.model_name}"
+    physics_ticks_per_second = 120
+    ep_len_seconds = args.ep_len_seconds
+    max_steps = int(round(ep_len_seconds * physics_ticks_per_second / frame_skip))
 
     def exit_save(model, path):
         model.save(path)
+    
+    def clear_folder(path):
+        for filename in os.listdir(path):
+            file_path = os.path.join(path, filename)
+            try:
+                if os.path.isfile(file_path) or os.path.islink(file_path):
+                    os.unlink(file_path)
+                elif os.path.isdir(file_path):
+                    shutil.rmtree(file_path)
+            except Exception as e:
+                print('Failed to delete %s. Reason: %s' % (file_path, e))
+    
+    if args.clear_models:
+        print(f"Clearing all models in {args.model_path}")
+        clear_folder(args.model_path)
+        print(f"Cleared {args.model_path}")
+    if args.clear_logs:
+        print(f"Clearing all logs in {args.logs_path}")
+        clear_folder(args.logs_path)
+        print(f"Cleared {args.logs_path}")
 
-    def get_match():                                            # Need to use a function so that each instance can call it and produce their own objects
+    # Need to use a function, so that each instance can call it and produce their own objects
+    def get_match():  
         return Match(
             team_size=args.team_size,
             tick_skip=frame_skip,
             reward_function=CombinedReward(
             (
                 VelocityPlayerToBallReward(),
-                VelocityBallToGoalReward(),
-                SaveBoostReward(),
-                #JumpTouchReward(),
-                EventReward(
-                    team_goal=100.0,
-                    concede=-100.0,
-                    shot=5.0,
-                    save=30.0,
-                    demo=10.0,
-                    boost_pickup=5.0
-                ),
+                TouchBallReward(),
+                #TODO :
             ),
-            (0.1, 1.0, 1.0, 1.0)),
+            (1.0)),
             spawn_opponents=args.spawn_opponents,
-            terminal_conditions=[TimeoutCondition(fps * 300), NoTouchTimeoutCondition(fps * 45), GoalScoredCondition()],
+            terminal_conditions=[TimeoutCondition(max_steps), BallTouchedCondition()],
+            #terminal_conditions=[TimeoutCondition(fps * 300), NoTouchTimeoutCondition(fps * 45), GoalScoredCondition()],
             obs_builder=AdvancedObs(),      # Not that advanced, good default
-            state_setter=BetterRandom(),    # Resets to a random position
+            state_setter=DistanceState(difficulty=0),
             action_parser=DiscreteAction()  # Discrete > Continuous don't @ me
         )
 
-    env = SB3MultipleInstanceEnv(get_match, num_instances)  # Start num_instances instances, waiting 60 seconds between each
+    env = SB3MultipleInstanceEnv(get_match,
+                                 num_instances,             # Start num_instances instances 
+                                 wait_time=20)              # Waiting 20 seconds between each
     env = VecCheckNan(env)                                  # Optional
     env = VecMonitor(env)                                   # Recommended, logs mean reward and ep_len to Tensorboard
     env = VecNormalize(env, norm_obs=False, gamma=gamma)    # Highly recommended, normalizes rewards
@@ -142,10 +168,11 @@ if __name__ == '__main__':  # Required for multiprocessing
                          # If you need to adjust parameters mid training, you can use the below example as a guide
                          # custom_objects={"n_envs": env.num_envs, "n_steps": steps, "batch_size": batch_size, "n_epochs": 10, "learning_rate": 5e-5}
         )
-        print("Loaded previous exit save.")
+        model._last_obs = None
+        print(f"Loaded previous exit save : {model_save_path}.zip")
         #total_params = count_parameters(model)
     except:
-        print("No saved model found, creating new model.")
+        print(f"No saved model found, creating new model : {model_save_path}.zip")
         policy_kwargs = dict(
             activation_fn=Tanh,
             net_arch=[512, 512, dict(pi=[256, 256, 256], vf=[256, 256, 256])],
@@ -189,4 +216,4 @@ if __name__ == '__main__':  # Required for multiprocessing
 
     print("Saving model")
     exit_save(model, model_save_path)
-    print("Save complete")
+    print(f"Save complete : {model_save_path}.zip")
