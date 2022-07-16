@@ -59,7 +59,11 @@ if __name__ == '__main__':  # Required for multiprocessing
     parser.add_argument('-half_life_seconds', type=int, default=5,
                         help='Number of Seconds until Half-life\n' + \
                              '(After this many seconds the reward discount is 0.5)')
-    parser.add_argument('-ep_len_seconds', type=int, default=10,
+    parser.add_argument('-env_type', type=str, default="distance",
+                        help='Which Training environment to set up')
+    parser.add_argument('-difficulty', type=int, default=0,
+                        help='Training Chosen Environment Difficulty')
+    parser.add_argument('-episode_len', type=int, default=10,
                         help='Maximum episode length (in seconds)')
 
     # Model Hyperparameters
@@ -107,7 +111,7 @@ if __name__ == '__main__':  # Required for multiprocessing
     mmr_save_frequency = 50_000_000
     model_save_path = f"{args.model_path}/{args.model_name}"
     physics_ticks_per_second = 120
-    ep_len_seconds = args.ep_len_seconds
+    ep_len_seconds = args.episode_len
     max_steps = int(round(ep_len_seconds * physics_ticks_per_second / frame_skip))
 
     def exit_save(model, path):
@@ -149,7 +153,9 @@ if __name__ == '__main__':  # Required for multiprocessing
             terminal_conditions=[TimeoutCondition(max_steps), BallTouchedCondition()],
             #terminal_conditions=[TimeoutCondition(fps * 300), NoTouchTimeoutCondition(fps * 45), GoalScoredCondition()],
             obs_builder=AdvancedObs(),      # Not that advanced, good default
-            state_setter=DistanceState(difficulty=0),
+            state_setter=DistanceState(env_type=args.env_type,
+                                       difficulty=args.difficulty,
+                                       give_boost=False),
             action_parser=DiscreteAction()  # Discrete > Continuous don't @ me
         )
 
