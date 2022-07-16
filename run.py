@@ -108,7 +108,7 @@ if __name__ == '__main__':  # Required for multiprocessing
     batch_size = target_steps//10                               # Getting the batch size down to something more manageable - 100k in this case
     training_interval = 25_000_000
     mmr_save_frequency = 50_000_000
-    model_save_path = f"{args.model_path}/{args.model_name}"
+    model_save_path = f"{args.model_path}/{args.model_name}.zip"
     physics_ticks_per_second = 120
     ep_len_seconds = args.episode_len
     max_steps = int(round(ep_len_seconds * physics_ticks_per_second / frame_skip))
@@ -166,7 +166,7 @@ if __name__ == '__main__':  # Required for multiprocessing
     env = VecNormalize(env, norm_obs=False, gamma=gamma)    # Highly recommended, normalizes rewards
 
     try:
-        model = PPO.load(f"{model_save_path}.zip",
+        model = PPO.load(model_save_path,
                          env,
                          device="auto",
                          custom_objects={"n_envs": env.num_envs}, # Automatically adjusts to users changing instance count, may encounter shaping error otherwise
@@ -174,10 +174,10 @@ if __name__ == '__main__':  # Required for multiprocessing
                          # custom_objects={"n_envs": env.num_envs, "n_steps": steps, "batch_size": batch_size, "n_epochs": 10, "learning_rate": 5e-5}
         )
         model._last_obs = None
-        print(f"Loaded previous exit save : {model_save_path}.zip")
+        print(f"Loaded previous exit save : {model_save_path}")
         #total_params = count_parameters(model)
     except:
-        print(f"No saved model found, creating new model : {model_save_path}.zip")
+        print(f"No saved model found, creating new model : {model_save_path}")
         policy_kwargs = dict(
             activation_fn=Tanh,
             net_arch=[512, 512, dict(pi=[256, 256, 256], vf=[256, 256, 256])],
@@ -221,4 +221,4 @@ if __name__ == '__main__':  # Required for multiprocessing
 
     print("Saving model")
     exit_save(model, model_save_path)
-    print(f"Save complete : {model_save_path}.zip")
+    print(f"Save complete : {model_save_path}")
