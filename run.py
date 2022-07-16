@@ -4,10 +4,10 @@ import argparse
 from argparse import RawTextHelpFormatter
 import numpy as np
 
-from src.utils.misc import count_parameters
+from src.utils.misc import clear_folder
 from src.environment.terminal_conditions import BallTouchedCondition
 from src.state_staters.state import DistanceState
-from src.rewards.botmichel_rewards import TouchBallReward
+from src.rewards.botmichel_rewards import TouchBallReward, VelocityPlayerToBallReward
 
 from torch.nn import Tanh
 from stable_baselines3 import PPO
@@ -18,8 +18,6 @@ from stable_baselines3.ppo import MlpPolicy
 from rlgym.envs import Match
 from rlgym.utils.action_parsers import DiscreteAction
 from rlgym.utils.obs_builders import AdvancedObs
-from rlgym.utils.terminal_conditions.common_conditions import TimeoutCondition
-from rlgym.utils.reward_functions.common_rewards.player_ball_rewards import VelocityPlayerToBallReward
 from rlgym.utils.terminal_conditions.common_conditions import TimeoutCondition
 from rlgym.utils.reward_functions import CombinedReward
 
@@ -116,25 +114,10 @@ if __name__ == '__main__':  # Required for multiprocessing
     def exit_save(model, path):
         model.save(path)
     
-    def clear_folder(path):
-        for filename in os.listdir(path):
-            file_path = os.path.join(path, filename)
-            try:
-                if os.path.isfile(file_path) or os.path.islink(file_path):
-                    os.unlink(file_path)
-                elif os.path.isdir(file_path):
-                    shutil.rmtree(file_path)
-            except Exception as e:
-                print('Failed to delete %s. Reason: %s' % (file_path, e))
-    
     if args.clear_models:
-        print(f"Clearing all models in {args.model_path}")
         clear_folder(args.model_path)
-        print(f"Cleared {args.model_path}")
     if args.clear_logs:
-        print(f"Clearing all logs in {args.logs_path}")
         clear_folder(args.logs_path)
-        print(f"Cleared {args.logs_path}")
 
     # Need to use a function, so that each instance can call it and produce their own objects
     def get_match():  
@@ -145,17 +128,15 @@ if __name__ == '__main__':  # Required for multiprocessing
             (
                 VelocityPlayerToBallReward(),
                 TouchBallReward(),
-                #TODO :
             ),
             (1.0, 1.0)),
             spawn_opponents=args.spawn_opponents,
             terminal_conditions=[TimeoutCondition(max_steps), BallTouchedCondition()],
-            #terminal_conditions=[TimeoutCondition(fps * 300), NoTouchTimeoutCondition(fps * 45), GoalScoredCondition()],
             obs_builder=AdvancedObs(),      # Not that advanced, good default
             state_setter=DistanceState(env_type=args.env_type,
                                        difficulty=args.difficulty,
                                        give_boost=False),
-            action_parser=DiscreteAction()  # Discrete > Continuous don't @ me
+            action_parser=DiscreteAction()  # Discrete > Continuous
         )
 
     env = SB3MultipleInstanceEnv(get_match,
@@ -164,7 +145,7 @@ if __name__ == '__main__':  # Required for multiprocessing
     env = VecCheckNan(env)                                  # Optional
     env = VecMonitor(env)                                   # Recommended, logs mean reward and ep_len to Tensorboard
     env = VecNormalize(env, norm_obs=False, gamma=gamma)    # Highly recommended, normalizes rewards
-
+    # If a model with that name exists, load it
     try:
         model = PPO.load(model_save_path,
                          env,
@@ -175,13 +156,13 @@ if __name__ == '__main__':  # Required for multiprocessing
         )
         model._last_obs = None
         print(f"Loaded previous exit save : {model_save_path}")
+    # If no model with that name exists/could not load, create it
     except:
         print(f"No saved model found, creating new model : {model_save_path}")
         policy_kwargs = dict(
             activation_fn=Tanh,
             net_arch=[512, 512, dict(pi=[256, 256, 256], vf=[256, 256, 256])],
         )
-
         model = PPO(
             MlpPolicy,
             env,
@@ -198,21 +179,16 @@ if __name__ == '__main__':  # Required for multiprocessing
             device=args.device                    # Uses GPU if available
         )        
 
-    # Save model every so often
-    # Divide by num_envs (number of agents) because callback only increments every time all agents have taken a step
-    # This saves to specified folder with a specified name
-    callback = CheckpointCallback(round(5_000_000 / env.num_envs), save_path=args.model_path, name_prefix="rl_model")
-
+    # Define saving model strategy every so often
+    callback = CheckpointCallback(round(5_000_000 / env.num_envs), save_path=args.model_path, name_prefix=args.model_name)
     try:
         mmr_model_target_count = model.num_timesteps + mmr_save_frequency
         while True:
-            #may need to reset timesteps when you're running a different number of instances than when you saved the model
-            model.learn(training_interval, callback=callback, reset_num_timesteps=False) #can ignore callback if training_interval < callback target
+            model.learn(training_interval, callback=callback, reset_num_timesteps=True) #can ignore callback if training_interval < callback target
             model.save(model_save_path)
             if model.num_timesteps >= mmr_model_target_count:
                 model.save(f"mmr_models/{args.model_name}_{model.num_timesteps}")
                 mmr_model_target_count += mmr_save_frequency
-
     except KeyboardInterrupt:
         print("Exiting training")
 
