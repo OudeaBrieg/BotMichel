@@ -1,43 +1,41 @@
 import numpy as np
-from rlgym.utils import RewardFunction
+from rlgym.utils import RewardFunction, math
 from rlgym.utils.gamestates import PlayerData, GameState
-from rlgym.utils.common_values import BALL_RADIUS, CAR_MAX_SPEED
-
-class JumpTouchReward(RewardFunction):
-    """
-        a ball touch reward that only triggers when the agent's wheels aren't in contact with the floor
-    adjust minimum ball height required for reward with 'min_height' as well as reward scaling with 'exp'
-    """
-    def __init__(self, min_height=92, exp=0.2):
-        self.min_height = min_height
-        self.exp = exp
-
-    def reset(self, initial_state: GameState):
-        pass
-
-    def get_reward(
-        self, player: PlayerData, state: GameState, previous_action: np.ndarray
-    ) -> float:
-        if player.ball_touched and not player.on_ground and state.ball.position[2] >= self.min_height:
-            return ((state.ball.position[2] - 92) ** self.exp)-1
-
-class SaveBoostReward(RewardFunction):
-    def reset(self, initial_state: GameState):
-        pass
-
-    def get_reward(self, player: PlayerData, state: GameState, previous_action: np.ndarray) -> float:
-        # 1 reward for each frame with 100 boost, sqrt because 0->20 makes bigger difference than 80->100
-        return np.sqrt(player.boost_amount)
+from rlgym.utils.common_values import CAR_MAX_SPEED
 
 class TouchBallReward(RewardFunction):
-    def __init__(self, aerial_weight=0.):
-        self.aerial_weight = aerial_weight
+    def reset(self, initial_state: GameState):
+        pass
+
+    def get_reward(self, player: PlayerData, state: GameState, previous_action: np.ndarray) -> float:
+        if not player.ball_touched:
+            return -0.05
+        return 0
+    
+    def get_final_reward(self, player: PlayerData, state: GameState, previous_action: np.ndarray) -> float:
+        if player.ball_touched:
+            return 1
+        return 0
+
+class VelocityPlayerToBallReward(RewardFunction):
+    def __init__(self, use_scalar_projection=False):
+        super().__init__()
+        self.use_scalar_projection = use_scalar_projection
 
     def reset(self, initial_state: GameState):
         pass
 
     def get_reward(self, player: PlayerData, state: GameState, previous_action: np.ndarray) -> float:
-        if player.ball_touched:
-            # Default just rewards 1, set aerial weight to reward more depending on ball height
-            return ((state.ball.position[2] + BALL_RADIUS) / (2 * BALL_RADIUS)) ** self.aerial_weight
-        return 0
+        vel = player.car_data.linear_velocity
+        pos_diff = state.ball.position - player.car_data.position
+        if self.use_scalar_projection:
+            # Vector version of v=d/t <=> t=d/v <=> 1/t=v/d
+            # Max value should be max_speed / ball_radius = 2300 / 92.75 = 24.8
+            # Used to guide the agent towards the ball
+            inv_t = math.scalar_projection(vel, pos_diff)
+            return inv_t
+        else:
+            # Regular component velocity
+            norm_pos_diff = pos_diff / np.linalg.norm(pos_diff)
+            norm_vel = vel / CAR_MAX_SPEED
+            return float(np.dot(norm_pos_diff, norm_vel))
