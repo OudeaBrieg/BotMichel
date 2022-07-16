@@ -27,7 +27,8 @@ GOAL_LINE = 5100
 
 YAW_MAX = np.pi
 
-class DistanceState(StateSetter):  # Random state with some triangular distributions
+# State Setter for the Distance Environment
+class DistanceState(StateSetter):
     def __init__(self,
                  env_type: str = "distance",
                  difficulty: int = 0,
@@ -45,13 +46,17 @@ class DistanceState(StateSetter):  # Random state with some triangular distribut
         # Computing Distance from Car to Ball
         def difficulty_distance(difficulty):
             def distance_easy():
-                return np.random.uniform(-128, -1024)
+                y_min, y_max = -200, -1024
+                return np.random.uniform(y_min, y_max), 0.15
             def distance_medium():
-                return np.random.uniform(-1024, -1984)
+                y_min, y_max = -1024, -1984
+                return np.random.uniform(y_min, y_max), 0.325
             def distance_hard():
-                return np.random.uniform(-1984, -2944)
+                y_min, y_max = -1984, -2944
+                return np.random.uniform(y_min, y_max), 0.5
             def distance_default():
-                return np.random.uniform(-128, -2944)
+                y_min, y_max = -200, -2944
+                return np.random.uniform(y_min, y_max), 0,5
             distance_switch = {
                 0: distance_easy,
                 1: distance_medium,
@@ -61,10 +66,8 @@ class DistanceState(StateSetter):  # Random state with some triangular distribut
 
         # Ball Initialization
         if self.ball_on_ground:
-            # Ball on the ground
             ball_height = 0    
         else:
-            # Ball in the air
             ball_height = np.random.uniform(90, 642)
         # Set Ball Position
         state_wrapper.ball.set_pos(0, 0, ball_height)
@@ -75,17 +78,17 @@ class DistanceState(StateSetter):  # Random state with some triangular distribut
         
         # Cars Initialization
         for car in state_wrapper.cars:
-            distance = difficulty_distance(self.difficulty)
+            distance, car_rot_th = difficulty_distance(self.difficulty)
             if self.cars_on_ground:
-                # Car on the ground
                 car_height = 0 
             else:
-                # Car in the air
                 car_height = np.random.uniform(90, 642)
             # Set Car Position
             car.set_pos(0, distance, car_height)
             face_ball = (np.pi/2)
-            yaw_treshold = (random.random() - 0.5) * (np.pi * 0.15)
+            yaw_treshold = (random.random() - 0.5) * (np.pi * car_rot_th)
+            if random.random() < 0.1:
+                yaw_treshold += np.pi
             # Set Car Rotation
             car.set_rot(0, face_ball + yaw_treshold, 0) 
             # Set Car Linear Velocity

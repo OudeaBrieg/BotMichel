@@ -144,7 +144,7 @@ if __name__ == '__main__':  # Required for multiprocessing
                 TouchBallReward(),
                 #TODO :
             ),
-            (1.0)),
+            (1.0, 1.0)),
             spawn_opponents=args.spawn_opponents,
             terminal_conditions=[TimeoutCondition(max_steps), BallTouchedCondition()],
             #terminal_conditions=[TimeoutCondition(fps * 300), NoTouchTimeoutCondition(fps * 45), GoalScoredCondition()],
