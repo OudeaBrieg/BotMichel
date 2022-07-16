@@ -175,7 +175,6 @@ if __name__ == '__main__':  # Required for multiprocessing
         )
         model._last_obs = None
         print(f"Loaded previous exit save : {model_save_path}")
-        #total_params = count_parameters(model)
     except:
         print(f"No saved model found, creating new model : {model_save_path}")
         policy_kwargs = dict(
@@ -197,9 +196,7 @@ if __name__ == '__main__':  # Required for multiprocessing
             n_steps=steps,                        # Number of steps to perform before optimizing network
             tensorboard_log=args.logs_path,       # `python -m tensorboard.main --logdir=logs` in terminal to see graphs
             device=args.device                    # Uses GPU if available
-        )
-        #total_params = count_parameters(model)
-        
+        )        
 
     # Save model every so often
     # Divide by num_envs (number of agents) because callback only increments every time all agents have taken a step
