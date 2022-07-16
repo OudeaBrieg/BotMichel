@@ -42,14 +42,6 @@ class DistanceState(StateSetter):  # Random state with some triangular distribut
         self.give_boost = give_boost
 
     def reset(self, state_wrapper: StateWrapper):
-        # Ball Initialization
-        if self.ball_on_ground:
-            state_wrapper.ball.set_pos(0, 0, 0)     # Set Ball Position
-        else:
-            state_wrapper.ball.set_pos(0, 0, np.random.uniform(90, 642)) # Set Ball Position
-        state_wrapper.ball.set_lin_vel(0, 0, 0)     # Set Ball Linear Velocity
-        state_wrapper.ball.set_ang_vel(0, 0, 0)     # Set Ball Angular Velocity
-
         def difficulty_distance(difficulty):
             def distance_easy():
                 return np.random.uniform(-128, -1024)
@@ -65,6 +57,14 @@ class DistanceState(StateSetter):  # Random state with some triangular distribut
                 2: distance_hard
             }
             return distance_switch.get(difficulty, distance_default)()
+
+        # Ball Initialization
+        if self.ball_on_ground:
+            state_wrapper.ball.set_pos(0, 0, 0)     # Set Ball Position
+        else:
+            state_wrapper.ball.set_pos(0, 0, np.random.uniform(90, 642)) # Set Ball Position
+        state_wrapper.ball.set_lin_vel(0, 0, 0)     # Set Ball Linear Velocity
+        state_wrapper.ball.set_ang_vel(0, 0, 0)     # Set Ball Angular Velocity
         
         # Cars Initialization
         for car in state_wrapper.cars:
