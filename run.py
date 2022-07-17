@@ -58,12 +58,14 @@ if __name__ == '__main__':  # Required for multiprocessing
     parser.add_argument('-half_life_seconds', type=int, default=5,
                         help='Number of Seconds until Half-life\n' + \
                              '(After this many seconds the reward discount is 0.5)')
+    parser.add_argument('-episode_len', type=int, default=10,
+                        help='Maximum episode length (in seconds)')
+
+    # Environment Parameters
     parser.add_argument('-env_type', type=str, default="distance",
                         help='Which Training environment to set up')
     parser.add_argument('-difficulty', type=int, default=0,
                         help='Training Chosen Environment Difficulty')
-    parser.add_argument('-episode_len', type=int, default=10,
-                        help='Maximum episode length (in seconds)')
 
     # Model Hyperparameters
     parser.add_argument('-learning_rate', type=float, default=5e-5,
