@@ -77,18 +77,18 @@ class DistanceState(StateSetter):
         state_wrapper.ball.set_ang_vel(0, 0, 0)     
         
         # Cars Initialization
+        car_height = 0 if self.cars_on_ground else np.random.uniform(90, 642)
+        distance, car_rot_th = difficulty_distance(self.difficulty)
+        rot_threshold = random.random() - 0.5
+        fw_bw = np.pi if random.random() < 0.1 else 0
+        boost_amount = np.random.uniform(0.12, 1.00) if random.random() < 0.1 else 0
         for car in state_wrapper.cars:
-            distance, car_rot_th = difficulty_distance(self.difficulty)
-            if self.cars_on_ground:
-                car_height = 0 
-            else:
-                car_height = np.random.uniform(90, 642)
+            # Mirroring the cars according to teams 
+            sign = 1 if car.team_num == 0 else -1
             # Set Car Position
-            car.set_pos(0, distance, car_height)
-            face_ball = (np.pi/2)
-            yaw_treshold = (random.random() - 0.5) * (np.pi * car_rot_th)
-            if random.random() < 0.1:
-                yaw_treshold += np.pi
+            car.set_pos(0, distance * sign, car_height)
+            face_ball = (np.pi/2) * sign
+            yaw_treshold = (rot_threshold) * (np.pi * car_rot_th) + fw_bw
             # Set Car Rotation
             car.set_rot(0, face_ball + yaw_treshold, 0) 
             # Set Car Linear Velocity
@@ -96,13 +96,7 @@ class DistanceState(StateSetter):
             # Set Car Angular Velocity                  
             car.set_ang_vel(0, 0, 0)
             # Set Car Boost
-            if self.give_boost:
-                # Give Random Boost from 12 -> 100
-                car.boost = np.random.uniform(0.12, 1.00)
-            else:
-                # Give No Boost
-                car.boost = 0
-
+            car.boost = boost_amount
     
 
     
