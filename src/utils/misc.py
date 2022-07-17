@@ -1,6 +1,7 @@
 from prettytable import PrettyTable
 import os
 import shutil
+import psutil
 
 def count_parameters(model): 
     table = PrettyTable(["Modules", "Parameters"]) 
@@ -27,3 +28,15 @@ def clear_folder(path):
         except Exception as e:
             print('Failed to delete %s. Reason: %s' % (file_path, e))
     print(f"Cleared {path}")
+
+def estimate_supported_processes():
+    mem_instance_launch = 3.5e9
+    vm = psutil.virtual_memory()
+    # Need 3.5GB to launch, reduces to 350MB after a while
+    est_proc_mem = round(
+        (vm.available - mem_instance_launch)
+        / mem_instance_launch
+    )
+    est_proc_cpu = os.cpu_count()
+    est_proc = min(est_proc_mem, est_proc_cpu)
+    return est_proc
