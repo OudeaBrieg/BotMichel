@@ -33,7 +33,8 @@ class VelocityPlayerToBallReward(RewardFunction):
             # Max value should be max_speed / ball_radius = 2300 / 92.75 = 24.8
             # Used to guide the agent towards the ball
             inv_t = math.scalar_projection(vel, pos_diff)
-            return inv_t
+            inv_t_norm = inv_t / CAR_MAX_SPEED
+            return inv_t_norm
         else:
             # Regular component velocity
             norm_pos_diff = pos_diff / np.linalg.norm(pos_diff)
