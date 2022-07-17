@@ -4,7 +4,7 @@ import argparse
 from argparse import RawTextHelpFormatter
 import numpy as np
 
-from src.utils.misc import clear_folder
+from src.utils.misc import clear_folder, estimate_supported_processes
 from src.environment.terminal_conditions import BallTouchedCondition
 from src.state_staters.state import DistanceState
 from src.rewards.botmichel_rewards import TouchBallReward, VelocityPlayerToBallReward
@@ -48,6 +48,8 @@ if __name__ == '__main__':  # Required for multiprocessing
     # Training Session Parameters
     parser.add_argument('-num_instances', type=int, default=1,
                         help='Number of Training Instances to be run in parallel')
+    parser.add_argument('-wait_time', type=int, default=20,
+                        help='Time to wait between each instance start')
     parser.add_argument('-device', type=str, default='auto',
                         help='Device (cpu, cuda, ...) on which the code should be run\n' + \
                              '(Setting it to auto, the code will run on GPU if possible)')
@@ -126,7 +128,7 @@ if __name__ == '__main__':  # Required for multiprocessing
             tick_skip=frame_skip,
             reward_function=CombinedReward(
             (
-                VelocityPlayerToBallReward(),
+                VelocityPlayerToBallReward(use_scalar_projection=True),
                 TouchBallReward(),
             ),
             (1.0, 1.0)),
@@ -139,9 +141,10 @@ if __name__ == '__main__':  # Required for multiprocessing
             action_parser=DiscreteAction()  # Discrete > Continuous
         )
 
+    print(f"Estimation for max CPU instances in parallel : {estimate_supported_processes()}")
     env = SB3MultipleInstanceEnv(get_match,
                                  num_instances,             # Start num_instances instances 
-                                 wait_time=20)              # Waiting 20 seconds between each
+                                 wait_time=args.wait_time)  # Waiting 20 seconds between each
     env = VecCheckNan(env)                                  # Optional
     env = VecMonitor(env)                                   # Recommended, logs mean reward and ep_len to Tensorboard
     env = VecNormalize(env, norm_obs=False, gamma=gamma)    # Highly recommended, normalizes rewards
