@@ -138,7 +138,7 @@ if __name__ == '__main__':  # Required for multiprocessing
     print(f"Estimation for max CPU instances in parallel : {estimate_supported_processes()}")
     env = SB3MultipleInstanceEnv(get_match,
                                  num_instances,             # Start num_instances instances 
-                                 wait_time=args.wait_time)  # Waiting 20 seconds between each
+                                 wait_time=args.wait_time)  # Waiting some time between each
     env = VecCheckNan(env)                                  # Optional
     env = VecMonitor(env)                                   # Recommended, logs mean reward and ep_len to Tensorboard
     env = VecNormalize(env, norm_obs=False, gamma=gamma)    # Highly recommended, normalizes rewards
