@@ -1,1 +1,1 @@
-python run.py -agents_per_match=2 -spawn_opponents=True -team_size=1 -num_instances=1 -episode_len=2 -env_type="distance" -difficulty=2
+python run.py -agents_per_match=2 -spawn_opponents=True -team_size=1 -num_instances=1 -episode_len=2 -env_type="distance" -difficulty=0

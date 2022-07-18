@@ -6,7 +6,7 @@ import numpy as np
 
 from src.utils.misc import clear_folder, estimate_supported_processes
 from src.environment.terminal_conditions import BallTouchedCondition
-from src.state_staters.state import DistanceState
+from src.state_staters.distance_state import DistanceState
 from src.rewards.botmichel_rewards import TouchBallReward, VelocityPlayerToBallReward
 
 from torch.nn import Tanh
@@ -27,14 +27,12 @@ from rlgym_tools.sb3_utils import SB3MultipleInstanceEnv
 if sys.version_info[0] != 3 or sys.version_info[1] != 7 or sys.version_info[2] != 9:
     raise Exception("Must be using Python 3.7.9")
 
-
 if __name__ == '__main__':  # Required for multiprocessing
     parser = argparse.ArgumentParser(
         description=f'Personalized Gym for training PPO-based Rocket League Reinforcement \
                       Learning Agents (e.g. : a Dojo for Rocket-powered Soccer playing \
                       Vehicles).',
         formatter_class=RawTextHelpFormatter)
-
     # In-Game Metadata
     parser.add_argument('-agents_per_match', type=int, default=1,
                         help='Number of Agents per Instance\n' + \
@@ -44,7 +42,6 @@ if __name__ == '__main__':  # Required for multiprocessing
     parser.add_argument('-team_size', type=int, default=1,
                         help='Number of Agents per Team\n' + \
                              '(1 if solo, 2 if twos, 3 if threes)')
-    
     # Training Session Parameters
     parser.add_argument('-num_instances', type=int, default=1,
                         help='Number of Training Instances to be run in parallel')
@@ -60,13 +57,11 @@ if __name__ == '__main__':  # Required for multiprocessing
                              '(After this many seconds the reward discount is 0.5)')
     parser.add_argument('-episode_len', type=int, default=10,
                         help='Maximum episode length (in seconds)')
-
     # Environment Parameters
     parser.add_argument('-env_type', type=str, default="distance",
                         help='Which Training environment to set up')
     parser.add_argument('-difficulty', type=int, default=0,
                         help='Training Chosen Environment Difficulty')
-
     # Model Hyperparameters
     parser.add_argument('-learning_rate', type=float, default=5e-5,
                         help='The Learning Rate\n' + \
@@ -83,7 +78,6 @@ if __name__ == '__main__':  # Required for multiprocessing
     parser.add_argument('-v_coef', type=float, default=1.,
                         help='Value function coefficient for the loss calculation\n' + \
                              '(PPO Atari recommmends setting it to 1)')
-
     # Saving Paths
     parser.add_argument('-model_path', type=str, default='models',
                         help='Relative Path to save the Trained Model')
@@ -95,12 +89,10 @@ if __name__ == '__main__':  # Required for multiprocessing
                         help='Enables clearing of all models in model_path')
     parser.add_argument('-clear_logs', type=bool, default=False,
                         help='Enables clearing of all logs in logs_path')
-    
     args = parser.parse_args()
 
     frame_skip = args.frame_skip                # Number of ticks to repeat an action
     half_life_seconds = args.half_life_seconds  # Easier to conceptualize, after this many seconds the reward discount is 0.5
-
     fps = 120 / frame_skip
     gamma = np.exp(np.log(0.5) / (fps * half_life_seconds))     # Quick mafs
     agents_per_match = args.agents_per_match                    # 2 if 1v1, 4 if 2v2, 6 if 3v3
@@ -132,14 +124,14 @@ if __name__ == '__main__':  # Required for multiprocessing
             (
                 VelocityPlayerToBallReward(use_scalar_projection=True),
                 TouchBallReward(),
-            ),
-            (1.0, 1.0)),
+            ), (1.0, 1.0)),
             spawn_opponents=args.spawn_opponents,
             terminal_conditions=[TimeoutCondition(max_steps), BallTouchedCondition()],
             obs_builder=AdvancedObs(),      # Not that advanced, good default
             state_setter=DistanceState(env_type=args.env_type,
                                        difficulty=args.difficulty,
-                                       give_boost=False),
+                                       fw_bw_chance=0.1,
+                                       boost_chance=0.1),
             action_parser=DiscreteAction()  # Discrete > Continuous
         )
 
@@ -184,7 +176,7 @@ if __name__ == '__main__':  # Required for multiprocessing
             device=args.device                    # Uses GPU if available
         )        
 
-    # Define saving model strategy every so often
+    # Callback defines saving model strategy every so often
     callback = CheckpointCallback(round(5_000_000 / env.num_envs), save_path=args.model_path, name_prefix=args.model_name)
     try:
         mmr_model_target_count = model.num_timesteps + mmr_save_frequency
