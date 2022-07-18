@@ -1,4 +1,3 @@
-from shutil import register_unpack_format
 import numpy as np
 import random
 from rlgym.utils import StateSetter
@@ -24,25 +23,24 @@ class YawState(StateSetter):
         self.distance = distance
 
     def reset(self, state_wrapper: StateWrapper):
-        # Ball Initialization
-        state_wrapper.ball.set_pos(0, 0, 0)
-        state_wrapper.ball.set_lin_vel(0, 0, 0)
-        state_wrapper.ball.set_ang_vel(0, 0, 0)     
-        
-        # Cars Initialization
         fw_bw = np.pi if random.random() < self.fw_bw_chance else 0
         boost = np.random.uniform(0.12, 1.00) if random.random() < self.boost_chance else 0
+        # Ball Initialization at center of the field
+        state_wrapper.ball.set_pos(0, 0, 0)
+        state_wrapper.ball.set_lin_vel(0, 0, 0)
+        state_wrapper.ball.set_ang_vel(0, 0, 0)
+        # Cars Initialization
         car_yaw = get_difficulty_yaw(self.difficulty, fw_bw)
         for car in state_wrapper.cars:
-            # Mirroring the cars according to the respective team 
+            # Mirroring the cars according to the respective team
             sign = 1 if car.team_num == 0 else -1
             # Set Car Position
             car.set_pos(0, self.distance * sign, 0)
             # Set Car Rotation
-            face_ball = (np.pi / 2) * sign
-            car.set_rot(0, face_ball + car_yaw, 0)
+            car_face_ball = (np.pi / 2) * sign
+            car.set_rot(0, car_face_ball + car_yaw, 0)
             # Set Car Velocity
-            car.set_lin_vel(0, 0, 0)            
+            car.set_lin_vel(0, 0, 0)
             car.set_ang_vel(0, 0, 0)
             # Set Car Boost
             car.boost = boost    
