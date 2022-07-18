@@ -4,7 +4,7 @@ import random
 from rlgym.utils import StateSetter
 from rlgym.utils.state_setters import StateWrapper
 
-from src.state_staters.state_switches import difficulty_distance
+from src.state_staters.state_switches import get_difficulty_distance
 
 from rlgym.utils.common_values import BALL_RADIUS
 
@@ -30,7 +30,7 @@ class DistanceState(StateSetter):
         state_wrapper.ball.set_ang_vel(0, 0, 0)     
         
         # Cars Initialization
-        distance = difficulty_distance(self.difficulty)
+        distance = get_difficulty_distance(self.difficulty)
         car_rot_th = np.arctan(BALL_RADIUS / distance)
         rot_threshold = random.random() - 0.5
         fw_bw = np.pi if random.random() < self.fw_bw_chance else 0

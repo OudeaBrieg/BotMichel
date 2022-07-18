@@ -4,7 +4,7 @@ import random
 from rlgym.utils import StateSetter
 from rlgym.utils.state_setters import StateWrapper
 
-from src.state_staters.state_switches import difficulty_yaw
+from src.state_staters.state_switches import get_difficulty_yaw
 
 from rlgym.utils.common_values import BALL_RADIUS
 
@@ -32,7 +32,7 @@ class YawState(StateSetter):
         # Cars Initialization
         fw_bw = np.pi if random.random() < self.fw_bw_chance else 0
         boost = np.random.uniform(0.12, 1.00) if random.random() < self.boost_chance else 0
-        car_yaw = difficulty_yaw(self.difficulty, fw_bw)
+        car_yaw = get_difficulty_yaw(self.difficulty, fw_bw)
         for car in state_wrapper.cars:
             # Mirroring the cars according to the respective team 
             sign = 1 if car.team_num == 0 else -1

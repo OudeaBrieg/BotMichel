@@ -2,7 +2,7 @@ import numpy as np
 import random
 
 # Computing Distance from Car to Ball
-def difficulty_distance(difficulty,
+def get_difficulty_distance(difficulty,
                         th_arr=[-200, -1024, 1984, -2944]):
     def distance_easy():
         dist_min, dist_max = th_arr[0], th_arr[1]
@@ -24,7 +24,7 @@ def difficulty_distance(difficulty,
     return distance_switch.get(difficulty, distance_default)()
 
 # Computing Yaw angle from Car to Ball
-def difficulty_yaw(difficulty,
+def get_difficulty_yaw(difficulty,
                    fw_bw,
                    coeff_arr=[0.15, 0.325, 0.5]):
     rot_threshold = random.random() - 0.5
