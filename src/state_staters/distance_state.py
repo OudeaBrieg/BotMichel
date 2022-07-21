@@ -3,7 +3,7 @@ import random
 from rlgym.utils import StateSetter
 from rlgym.utils.state_setters import StateWrapper
 
-from src.state_staters.state_switches import get_difficulty_distance
+from src.state_staters.state_switches import get_difficulty_distance, MIN_OCTANE_HEIGHT
 from src.utils.misc import compute_angle
 
 from rlgym.utils.common_values import BALL_RADIUS
@@ -38,7 +38,7 @@ class DistanceState(StateSetter):
             y = distance * np.sin((k * 2 * np.pi) / n)
             x = distance * np.cos((k * 2 * np.pi) / n)
             # Set Car Position
-            car.set_pos(x, y, 0)
+            car.set_pos(x, y, MIN_OCTANE_HEIGHT)
             # Set Car Rotation
             car_face_ball_angle = compute_angle(x, y)
             #car.set_rot(0, yaw_angle + yaw_treshold, 0)

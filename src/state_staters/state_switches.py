@@ -1,6 +1,8 @@
 import numpy as np
 import random
 
+MIN_OCTANE_HEIGHT = 17.01
+
 # Computing Distance from Car to Ball
 def get_difficulty_distance(difficulty,
                         th_arr=[-200, -1024, 1984, -2944]):
