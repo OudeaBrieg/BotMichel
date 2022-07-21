@@ -2,6 +2,7 @@ from prettytable import PrettyTable
 import os
 import shutil
 import psutil
+import numpy as np
 
 def count_parameters(model): 
     table = PrettyTable(["Modules", "Parameters"]) 
@@ -40,3 +41,24 @@ def estimate_supported_processes():
     est_proc_cpu = os.cpu_count()
     est_proc = min(est_proc_mem, est_proc_cpu)
     return est_proc
+
+# Shhhhhhh 
+# -> https://cdn.discordapp.com/attachments/249627896057036802/999508411274244147/unknown.png
+def compute_angle(x, y):
+    if y == 0:
+        if x > 0:
+            return np.pi
+        if x < 0:
+            return 0
+    if x == 0:
+        if y > 0:
+            return -np.pi / 2
+        if y < 0:
+            return np.pi / 2
+    if x > 0 and y > 0:
+        return np.arctan(y/x) - np.pi
+    if x > 0 and y < 0:
+        return np.pi - np.arctan(-y/x)
+    if x < 0 and y < 0:
+        return np.arctan(-y/-x)
+    return - np.arctan(y/-x)

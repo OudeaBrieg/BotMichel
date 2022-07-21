@@ -4,6 +4,7 @@ from rlgym.utils import StateSetter
 from rlgym.utils.state_setters import StateWrapper
 
 from src.state_staters.state_switches import get_difficulty_distance
+from src.utils.misc import compute_angle
 
 from rlgym.utils.common_values import BALL_RADIUS
 
@@ -13,7 +14,7 @@ class DistanceState(StateSetter):
                  env_type: str = "distance",
                  difficulty: int = 0,
                  fw_bw_chance: float = 0.1,
-                 boost_chance: float = 0.1):
+                 boost_chance: float = 0.9):
         super().__init__()
         self.env_type = env_type
         self.difficulty = difficulty
@@ -32,14 +33,16 @@ class DistanceState(StateSetter):
         car_rot_th = np.arctan(BALL_RADIUS / distance)
         rot_threshold = random.random() - 0.5
         yaw_treshold = (rot_threshold) * (np.pi * car_rot_th) + fw_bw
-        for car in state_wrapper.cars:
-            # Mirroring the cars according to the respective team
-            sign = 1 if car.team_num == 0 else -1
+        n = len(state_wrapper.cars)
+        for k, car in enumerate(state_wrapper.cars):
+            y = distance * np.sin((k * 2 * np.pi) / n)
+            x = distance * np.cos((k * 2 * np.pi) / n)
             # Set Car Position
-            car.set_pos(0, distance * sign, 0)
+            car.set_pos(x, y, 0)
             # Set Car Rotation
-            car_face_ball = (np.pi / 2) * sign
-            car.set_rot(0, car_face_ball + yaw_treshold, 0)
+            car_face_ball_angle = compute_angle(x, y)
+            #car.set_rot(0, yaw_angle + yaw_treshold, 0)
+            car.set_rot(0, car_face_ball_angle + yaw_treshold, 0)
             # Set Car Velocity
             car.set_lin_vel(0, 0, 0)
             car.set_ang_vel(0, 0, 0)

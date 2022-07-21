@@ -6,7 +6,9 @@ import numpy as np
 
 from src.utils.misc import clear_folder, estimate_supported_processes
 from src.environment.terminal_conditions import BallTouchedCondition
+from src.state_staters.multistate_weighted import WeightedSampleSetter
 from src.state_staters.distance_state import DistanceState
+from src.state_staters.yaw_state import YawState
 from src.rewards.botmichel_rewards import TouchBallReward, VelocityPlayerToBallReward
 
 from torch.nn import Tanh
@@ -127,11 +129,10 @@ if __name__ == '__main__':  # Required for multiprocessing
             ), (1.0, 1.0)),
             spawn_opponents=args.spawn_opponents,
             terminal_conditions=[TimeoutCondition(max_steps), BallTouchedCondition()],
-            obs_builder=AdvancedObs(),      # Not that advanced, good default
-            state_setter=DistanceState(env_type=args.env_type,
-                                       difficulty=args.difficulty,
-                                       fw_bw_chance=0.1,
-                                       boost_chance=0.1),
+            obs_builder=AdvancedObs(),
+            state_setter=WeightedSampleSetter([DistanceState(difficulty=args.difficulty),
+                                               YawState(difficulty=args.difficulty)],
+                                              [0.5, 0.5]),
             action_parser=DiscreteAction()  # Discrete > Continuous
         )
 
