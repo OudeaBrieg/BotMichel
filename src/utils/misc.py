@@ -42,7 +42,7 @@ def estimate_supported_processes():
     est_proc = min(est_proc_mem, est_proc_cpu)
     return est_proc
 
-# Shhhhhhh 
+# Shhhhhhh
 # -> https://cdn.discordapp.com/attachments/249627896057036802/999508411274244147/unknown.png
 def compute_angle(x, y):
     if y == 0:
