@@ -1,7 +1,7 @@
 import numpy as np
 from rlgym.utils import RewardFunction, math
 from rlgym.utils.gamestates import PlayerData, GameState
-from rlgym.utils.common_values import CAR_MAX_SPEED
+from rlgym.utils.common_values import SUPERSONIC_THRESHOLD
 
 class TouchBallReward(RewardFunction):
     def reset(self, initial_state: GameState):
@@ -33,10 +33,10 @@ class VelocityPlayerToBallReward(RewardFunction):
             # Max value should be max_speed / ball_radius = 2300 / 92.75 = 24.8
             # Used to guide the agent towards the ball
             inv_t = math.scalar_projection(vel, pos_diff)
-            inv_t_norm = inv_t / CAR_MAX_SPEED
+            inv_t_norm = inv_t / SUPERSONIC_THRESHOLD
             return inv_t_norm
         else:
             # Regular component velocity
             norm_pos_diff = pos_diff / np.linalg.norm(pos_diff)
-            norm_vel = vel / CAR_MAX_SPEED
+            norm_vel = vel / SUPERSONIC_THRESHOLD
             return float(np.dot(norm_pos_diff, norm_vel))
