@@ -3,13 +3,13 @@ import random
 from rlgym.utils import StateSetter
 from rlgym.utils.state_setters import StateWrapper
 
-from src.state_staters.state_switches import get_difficulty_distance, get_difficulty_car_yaw, \
+from src.state_setters.state_switches import get_difficulty_distance, get_difficulty_car_yaw, \
                                              get_difficulty_car_speed
 from src.utils.misc import compute_angle
 from src.utils.common_values import BALL_RADIUS, OCTANE_MIN_SPAWN_HEIGHT
 
-# State Setter for the Distance Environment
-class DistanceState(StateSetter):
+# State Setter for the Yaw Environment
+class YawState(StateSetter):
     def __init__(self,
                  difficulty: int = 0,
                  fw_bw_chance: float = 0.1,
@@ -28,8 +28,8 @@ class DistanceState(StateSetter):
         state_wrapper.ball.set_lin_vel(0, 0, 0)
         state_wrapper.ball.set_ang_vel(0, 0, 0)
         # Cars Initialization
-        car_distance = get_difficulty_distance(self.difficulty)
-        car_yaw = get_difficulty_car_yaw(0, car_distance, fw_bw)
+        car_distance = get_difficulty_distance(0)
+        car_yaw = get_difficulty_car_yaw(self.difficulty, car_distance, fw_bw)
         car_speed = get_difficulty_car_speed(0, fw_bw)
         for k, car in enumerate(state_wrapper.cars):
             y = car_distance * np.sin((k * 2 * np.pi) / n)

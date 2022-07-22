@@ -3,7 +3,7 @@ import random
 from rlgym.utils import StateSetter
 from rlgym.utils.state_setters import StateWrapper
 
-from src.state_staters.state_switches import get_difficulty_distance, get_difficulty_car_yaw, \
+from src.state_setters.state_switches import get_difficulty_distance, get_difficulty_car_yaw, \
                                              get_difficulty_car_speed
 from src.utils.misc import compute_angle
 from src.utils.common_values import BALL_RADIUS, OCTANE_MIN_SPAWN_HEIGHT

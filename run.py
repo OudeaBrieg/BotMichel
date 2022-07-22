@@ -7,10 +7,10 @@ import numpy as np
 
 from src.utils.misc import clear_folder, estimate_supported_processes
 from src.environment.terminal_conditions import BallTouchedCondition
-from src.state_staters.multistate_weighted import WeightedSampleSetter
-from src.state_staters.state_dojo import DojoState
-from src.state_staters.distance_state import DistanceState
-from src.state_staters.yaw_state import YawState
+from src.state_setters.multistate_weighted import WeightedSampleSetter
+from src.state_setters.state_dojo import DojoState
+from src.state_setters.distance_state import DistanceState
+from src.state_setters.yaw_state import YawState
 from src.rewards.botmichel_rewards import TouchBallReward, VelocityPlayerToBallReward
 
 from torch.nn import Tanh
