@@ -1,46 +1,77 @@
 import numpy as np
 import random
+from src.utils.common_values import BALL_RADIUS, OCTANE_LENGTH, SUPERSONIC_THRESHOLD
 
-MIN_OCTANE_HEIGHT = 17.01
-
-# Computing Distance from Car to Ball
+# Getting Distance from Car to Ball
 def get_difficulty_distance(difficulty,
-                        th_arr=[-200, -1024, 1984, -2944]):
+                            th_arr=[1024, 1984, 2944]):
+    min_distance = BALL_RADIUS + OCTANE_LENGTH + 42
+    max_distance = th_arr[-1]
+    def no_distance():
+        return min_distance
     def distance_easy():
-        dist_min, dist_max = th_arr[0], th_arr[1]
-        return np.random.uniform(dist_min, dist_max)
+        return np.random.uniform(min_distance, th_arr[0])
     def distance_medium():
-        dist_min, dist_max = th_arr[1], th_arr[2]
-        return np.random.uniform(dist_min, dist_max)
+        return np.random.uniform(th_arr[0], th_arr[1])
     def distance_hard():
-        dist_min, dist_max = th_arr[2], th_arr[3]
-        return np.random.uniform(dist_min, dist_max)
+        return np.random.uniform(th_arr[1], max_distance)
     def distance_default():
-        dist_min, dist_max = th_arr[0], th_arr[3]
-        return np.random.uniform(dist_min, dist_max)
+        return np.random.uniform(min_distance, max_distance)
     distance_switch = {
-        0: distance_easy,
-        1: distance_medium,
-        2: distance_hard
+        0: no_distance,
+        1: distance_easy,
+        2: distance_medium,
+        3: distance_hard
     }
     return distance_switch.get(difficulty, distance_default)()
 
-# Computing Yaw angle from Car to Ball
-def get_difficulty_yaw(difficulty,
-                   fw_bw,
-                   coeff_arr=[0.15, 0.325, 0.5]):
-    rot_threshold = random.random() - 0.5
+# Getting Yaw angle from Car to Ball
+def get_difficulty_car_yaw(difficulty,
+                           distance,
+                           fw_bw,
+                           th_arr=[0.15, 0.325, 0.5]):
+    min_yaw = np.arctan(BALL_RADIUS / distance)
+    max_yaw = th_arr[-1]                   
+    side = 1 if random.random() < 0.5 else -1
+    def no_yaw():
+        return side * (np.pi * np.random.uniform(0, min_yaw)) + fw_bw
     def yaw_easy():
-        return (rot_threshold) * (np.pi * coeff_arr[0]) + fw_bw
+        return side * (np.pi * np.random.uniform(min_yaw, th_arr[0])) + fw_bw
     def yaw_medium():
-        return (rot_threshold) * (np.pi * coeff_arr[1]) + fw_bw
+        return side * (np.pi * np.random.uniform(th_arr[0], th_arr[1])) + fw_bw
     def yaw_hard():
-        return (rot_threshold) * (np.pi * coeff_arr[2]) + fw_bw
+        return side * (np.pi * np.random.uniform(th_arr[1], max_yaw)) + fw_bw
     def yaw_default():
-        return (rot_threshold) * (np.pi * coeff_arr[2]) + fw_bw
+        return side * (np.pi * np.random.uniform(0, max_yaw)) + fw_bw
     yaw_switch = {
-        0: yaw_easy,
-        1: yaw_medium,
-        2: yaw_hard
+        0: no_yaw,
+        1: yaw_easy,
+        2: yaw_medium,
+        3: yaw_hard
     }
     return yaw_switch.get(difficulty, yaw_default)()
+
+# Getting Car Initial Speed
+def get_difficulty_car_speed(difficulty,
+                             fw_bw,
+                             th_arr=[705, 1410]):
+    speed_min = 0
+    speed_max = SUPERSONIC_THRESHOLD
+    side = 1 if fw_bw == 0 else -1
+    def no_speed():
+        return side * speed_min
+    def speed_easy():
+        return side * np.random.randint(th_arr[0]) 
+    def speed_medium():
+        return side * np.random.randint(th_arr[0], th_arr[1])
+    def speed_hard():
+        return side * np.random.randint(th_arr[1], speed_max)
+    def speed_default():
+        return side * np.random.randint(speed_max)
+    speed_switch = {
+        0: no_speed,
+        0: speed_easy,
+        1: speed_medium,
+        2: speed_hard
+    }
+    return speed_switch.get(difficulty, speed_default)()
