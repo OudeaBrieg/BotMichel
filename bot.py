@@ -11,10 +11,9 @@ class RLGymExampleBot(BaseAgent):
     def __init__(self, name, team, index):
         super().__init__(name, team, index)
 
-        # FIXME Hey, botmaker. Start here:
-        # Swap the obs builder if you are using a different one, RLGym's AdvancedObs is also available
+        # RLGym's AdvancedObs
         self.obs_builder = AdvancedObs()
-        # Your neural network logic goes inside the Agent class, go take a look inside src/agent.py
+        # The neural network logic goes inside the Agent class, go take a look inside src/agent.py
         self.agent = Agent()
         # Adjust the tickskip if your agent was trained with a different value
         self.tick_skip = 8
@@ -43,7 +42,7 @@ class RLGymExampleBot(BaseAgent):
 
     def reshape_state(self, gamestate, player, opponents, allies):
         """ TODO - replace me with code that handles different sized teams
-        - converting to 1v1 currently """
+        - converting to 1v1 currently with only the closest opponent detected"""
         closest_op = min(opponents, key=lambda p: np.linalg.norm(self.game_state.ball.position - p.car_data.position))
         self.game_state.players = [player, closest_op]
 

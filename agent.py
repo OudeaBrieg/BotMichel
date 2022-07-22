@@ -7,16 +7,17 @@ from src.parsers.discrete_act import DiscreteAction
 class Agent:
     def __init__(self):
         _path = pathlib.Path(__file__).parent.resolve()
-        model_name = "bot_michel"
+        m_path = "/models/"
+        model_name = "bot_michel.zip"
         custom_objects = {
             "lr_schedule": 0.000001,
             "clip_range": .02,
             "n_envs": 1,
+            "device": "cpu"
         }
         # Should modify 'cpu' to 'gpu' when possible
-        self.actor = PPO.load(str(_path) + '/models/' + model_name, device='cuda', custom_objects=custom_objects)
+        self.actor = PPO.load(str(_path) + m_path + model_name, custom_objects=custom_objects)
         self.parser = DiscreteAction()
-
 
     def act(self, state):
         action = self.actor.predict(state, deterministic=True)
