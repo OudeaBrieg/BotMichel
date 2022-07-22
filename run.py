@@ -1,12 +1,14 @@
 import sys, os
 import shutil
 import argparse
+import configparser
 from argparse import RawTextHelpFormatter
 import numpy as np
 
 from src.utils.misc import clear_folder, estimate_supported_processes
 from src.environment.terminal_conditions import BallTouchedCondition
 from src.state_staters.multistate_weighted import WeightedSampleSetter
+from src.state_staters.state_dojo import DojoState
 from src.state_staters.distance_state import DistanceState
 from src.state_staters.yaw_state import YawState
 from src.rewards.botmichel_rewards import TouchBallReward, VelocityPlayerToBallReward
@@ -30,20 +32,26 @@ if sys.version_info[0] != 3 or sys.version_info[1] != 7 or sys.version_info[2] !
     raise Exception("Must be using Python 3.7.9")
 
 if __name__ == '__main__':  # Required for multiprocessing
+    here = os.path.realpath('.')
     parser = argparse.ArgumentParser(
         description=f'Personalized Gym for training PPO-based Rocket League Reinforcement \
                       Learning Agents (e.g. : a Dojo for Rocket-powered Soccer playing \
                       Vehicles).',
         formatter_class=RawTextHelpFormatter)
+    config = configparser.ConfigParser(defaults = {'here': here})
+    # Load from Configuration File
+    parser.add_argument('-config_file', type=str, default='',
+                        help='Path to Configuration File to load the Parameters from')
     # In-Game Metadata
-    parser.add_argument('-agents_per_match', type=int, default=1,
+    parser.add_argument('-agents_per_match', type=int, default=6,
                         help='Number of Agents per Instance\n' + \
                              '(1 if solo, 2 if 1v1, 4 if 2v2, 6 if 3v3)')
-    parser.add_argument('-spawn_opponents', type=bool, default=False,
-                        help='Enabling opponents to spawn')
-    parser.add_argument('-team_size', type=int, default=1,
+    parser.add_argument('-team_size', type=int, default=3,
                         help='Number of Agents per Team\n' + \
                              '(1 if solo, 2 if twos, 3 if threes)')
+    parser.add_argument('-spawn_opponents', type=bool, default=True,
+                        help='Enabling opponents to spawn')
+    
     # Training Session Parameters
     parser.add_argument('-num_instances', type=int, default=1,
                         help='Number of Training Instances to be run in parallel')
@@ -57,13 +65,12 @@ if __name__ == '__main__':  # Required for multiprocessing
     parser.add_argument('-half_life_seconds', type=int, default=5,
                         help='Number of Seconds until Half-life\n' + \
                              '(After this many seconds the reward discount is 0.5)')
+    # Environment Parameters
+    parser.add_argument('-difficulty_levels', type=lambda s: [int(item) for item in s.split(',')],
+                        default=[1, 1, 1],
+                        help='Selecting Difficulties for the Training Environment (format="diffficulty_0,diffficulty_1,,...weight_n")')
     parser.add_argument('-episode_len', type=int, default=10,
                         help='Maximum episode length (in seconds)')
-    # Environment Parameters
-    parser.add_argument('-env_type', type=str, default="distance",
-                        help='Which Training environment to set up')
-    parser.add_argument('-difficulty', type=int, default=0,
-                        help='Training Chosen Environment Difficulty')
     # Model Hyperparameters
     parser.add_argument('-learning_rate', type=float, default=5e-5,
                         help='The Learning Rate\n' + \
@@ -83,7 +90,7 @@ if __name__ == '__main__':  # Required for multiprocessing
     # Saving Paths
     parser.add_argument('-model_path', type=str, default='models',
                         help='Relative Path to save the Trained Model')
-    parser.add_argument('-model_name', type=str, default='bot_michel',
+    parser.add_argument('-model_name', type=str, default='',
                         help='Name of the Model')
     parser.add_argument('-logs_path', type=str, default='logs',
                         help='`python -m tensorboard.main --logdir=your-path` at the root.')
@@ -92,6 +99,31 @@ if __name__ == '__main__':  # Required for multiprocessing
     parser.add_argument('-clear_logs', type=bool, default=False,
                         help='Enables clearing of all logs in logs_path')
     args = parser.parse_args()
+    if len(args.config_file):
+        print(f'Reading configuration from {args.config_file}')
+        config.read(args.config_file)
+        def parse_all_args(args, config):
+            args.agents_per_match = int(config["METADATA"]["agents_per_match"])
+            args.team_size = int(config["METADATA"]["team_size"])
+            args.spawn_opponents = config.getboolean("METADATA", "spawn_opponents")
+            args.num_instances = int(config["TRAININGSESSION"]["num_instances"])
+            args.wait_time = int(config["TRAININGSESSION"]["wait_time"])
+            args.device = str(config["TRAININGSESSION"]["device"])
+            args.frame_skip = int(config["TRAININGSESSION"]["frame_skip"])
+            args.half_life_seconds = int(config["TRAININGSESSION"]["half_life_seconds"])
+            args.difficulty_levels = [float(level) for level in str(config["ENVIRONMENT"]["difficulty_levels"]).split(',')]
+            args.episode_len = int(config["ENVIRONMENT"]["episode_len"])
+            args.learning_rate = float(config["MODEL"]["learning_rate"])
+            args.target_steps = int(config["MODEL"]["target_steps"])
+            args.n_epochs = int(config["MODEL"]["n_epochs"])
+            args.ent_coef = float(config["MODEL"]["ent_coef"])
+            args.v_coef = float(config["MODEL"]["v_coef"])
+            args.logs_path = str(config["SAVELOAD"]["logs_path"])
+            args.model_path = str(config["SAVELOAD"]["model_path"])
+            args.model_name = str(config["SAVELOAD"]["model_name"])
+            args.clear_models = config.getboolean("SAVELOAD", "clear_models")
+            args.clear_logs = config.getboolean("SAVELOAD", "clear_logs")
+        parse_all_args(args, config)
 
     frame_skip = args.frame_skip                # Number of ticks to repeat an action
     half_life_seconds = args.half_life_seconds  # Easier to conceptualize, after this many seconds the reward discount is 0.5
@@ -100,7 +132,7 @@ if __name__ == '__main__':  # Required for multiprocessing
     agents_per_match = args.agents_per_match                    # 2 if 1v1, 4 if 2v2, 6 if 3v3
     num_instances = args.num_instances                          # As many as you can handle
     target_steps = args.target_steps                            # How many steps we want to train for each training session
-    steps = target_steps // (num_instances * agents_per_match)  # Making sure the experience counts line up properly
+    n_steps = target_steps // (num_instances * agents_per_match)# Making sure the experience counts line up properly
     batch_size = target_steps//10                               # Getting the batch size down to something more manageable - 100k in this case
     training_interval = 25_000_000
     mmr_save_frequency = 50_000_000
@@ -130,9 +162,12 @@ if __name__ == '__main__':  # Required for multiprocessing
             spawn_opponents=args.spawn_opponents,
             terminal_conditions=[TimeoutCondition(max_steps), BallTouchedCondition()],
             obs_builder=AdvancedObs(),
-            state_setter=WeightedSampleSetter([DistanceState(difficulty=args.difficulty),
-                                               YawState(difficulty=args.difficulty)],
-                                              [0.5, 0.5]),
+            state_setter=WeightedSampleSetter([DojoState(difficulty_list = {
+                                                            "distance" : args.difficulty_levels[0],
+                                                            "car_yaw" : args.difficulty_levels[1],
+                                                            "car_speed" : args.difficulty_levels[2]
+                                                        })],
+                                              [1.0]),
             action_parser=DiscreteAction()  # Discrete > Continuous
         )
 
@@ -172,7 +207,7 @@ if __name__ == '__main__':  # Required for multiprocessing
             gamma=gamma,                          # Gamma as calculated using half-life
             verbose=3,                            # Print out all the info as we're going
             batch_size=batch_size,                # Batch size as high as possible within reason
-            n_steps=steps,                        # Number of steps to perform before optimizing network
+            n_steps=n_steps,                        # Number of steps to perform before optimizing network
             tensorboard_log=args.logs_path,       # `python -m tensorboard.main --logdir=logs` in terminal to see graphs
             device=args.device                    # Uses GPU if available
         )        
